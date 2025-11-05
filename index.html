@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Online Quiz</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="container">
+        <h1>
+          Safeguarding Quiz - Catholic Safeguarding Standards Agency (CSSA)
+        </h1>
+
+        <!-- User Info Section -->
+        <div id="user-section" class="panel">
+          <input id="name" type="text" placeholder="Enter your name" />
+          <input id="email" type="email" placeholder="Enter your email" />
+          <div class="controls-row">
+            <button id="startBtn" class="btn primary">Start Quiz</button>
+          </div>
+        </div>
+
+        <!-- Quiz Section -->
+        <div id="quiz-section" class="panel hidden">
+          <div id="question-header">
+            <div id="question-number">Question 1</div>
+            <div id="question-text">Question text appears here</div>
+          </div>
+
+          <div id="options" class="options">
+            <!-- options injected here as labels with checkbox + span.option-text -->
+          </div>
+
+          <div class="controls-row">
+            <button id="nextBtn" class="btn primary">Next</button>
+          </div>
+        </div>
+
+        <!-- Result Section -->
+        <div id="result-section" class="panel hidden">
+          <h2>Your Score</h2>
+          <div id="score">0 / 0</div>
+          <div class="controls-row">
+            <button id="restartBtn" class="btn ghost">Restart</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
