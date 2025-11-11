@@ -11,6 +11,21 @@
   <body>
     <div class="page">
       <div class="container">
+        <!-- Logo -->
+        <div style="text-align: center; margin-bottom: 20px">
+          <img
+            src="123.png"
+            alt="Capuchin Franciscans Great Britain Logo"
+            style="
+              width: 200px;
+              height: auto;
+              border-radius: 6px;
+              border: 4px solid #ffffff;
+              box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+            "
+          />
+        </div>
+
         <h1>
           Safeguarding Quiz - Catholic Safeguarding Standards Agency (CSSA)
         </h1>
@@ -24,6 +39,27 @@
           </div>
         </div>
 
+        <!-- Instructions Section -->
+        <div id="instructions-section" class="panel hidden">
+          <h2>Instructions</h2>
+          <ul style="line-height: 1.6; color: #fff; font-size: 15px">
+            <li>
+              You can attempt the quiz a maximum of <strong>two times</strong>.
+            </li>
+            <li>Each question carries <strong>one mark</strong>.</li>
+            <li>There is <strong>no negative marking</strong>.</li>
+            <li>
+              There can be <strong>one or more correct answers</strong> for a
+              particular question.
+            </li>
+            <li><strong>All questions are mandatory</strong>.</li>
+          </ul>
+          <div class="controls-row">
+            <button id="beginQuizBtn" class="btn primary">Begin Quiz</button>
+            <button id="backBtn" class="btn ghost">Back</button>
+          </div>
+        </div>
+
         <!-- Quiz Section -->
         <div id="quiz-section" class="panel hidden">
           <div id="question-header">
@@ -31,9 +67,7 @@
             <div id="question-text">Question text appears here</div>
           </div>
 
-          <div id="options" class="options">
-            <!-- options injected here as labels with checkbox + span.option-text -->
-          </div>
+          <div id="options" class="options"></div>
 
           <div class="controls-row">
             <button id="nextBtn" class="btn primary">Next</button>
