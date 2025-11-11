@@ -44,7 +44,7 @@ function incrementAttempts(email) {
 }
 
 // ----------------------
-// Start Button - Show Instructions First
+// Start Button - Show Instructions
 // ----------------------
 startBtn.addEventListener("click", async () => {
   userName = document.getElementById("name").value.trim();
@@ -63,7 +63,6 @@ startBtn.addEventListener("click", async () => {
     return;
   }
 
-  // Fetch questions before showing instructions
   try {
     const res = await fetch(`${scriptURL}?action=getQuestions`);
     questions = await res.json();
@@ -73,10 +72,7 @@ startBtn.addEventListener("click", async () => {
       return;
     }
 
-    // Shuffle questions
     questions = shuffleArray(questions);
-
-    // Show instructions section
     userSection.classList.add("hidden");
     instructionsSection.classList.remove("hidden");
   } catch (err) {
@@ -86,22 +82,20 @@ startBtn.addEventListener("click", async () => {
 });
 
 // ----------------------
-// Begin Quiz from Instructions
+// Begin Quiz
 // ----------------------
 beginQuizBtn.addEventListener("click", () => {
   instructionsSection.classList.add("hidden");
   quizSection.classList.remove("hidden");
-
   currentQuestion = 0;
   score = 0;
   userAnswers = [];
-
   showQuestion();
   incrementAttempts(userEmail);
 });
 
 // ----------------------
-// Go Back to Login
+// Go Back
 // ----------------------
 backBtn.addEventListener("click", () => {
   instructionsSection.classList.add("hidden");
@@ -161,33 +155,42 @@ nextBtn.addEventListener("click", async () => {
 
   const correct = questions[currentQuestion].correct || [];
   const hasCorrect = selected.some((s) => correct.includes(s));
-  const hasWrong = selected.some((s) => !correct.includes(s));
 
-  if (selected.length > 0 && hasCorrect && !hasWrong) {
-    score++;
-  }
+  // ✅ Consider correct if any correct option chosen
+  if (hasCorrect) score++;
 
   currentQuestion++;
 
   if (currentQuestion < questions.length) {
     showQuestion();
   } else {
-    await submitQuiz();
+    submitQuiz();
   }
 });
 
 // ----------------------
-// Submit Quiz
+// Submit Quiz (No delay version)
 // ----------------------
-async function submitQuiz() {
+function submitQuiz() {
+  // Immediately switch sections and show answers
   quizSection.classList.add("hidden");
   resultSection.classList.remove("hidden");
   document.getElementById("score").innerText = `${score} / ${questions.length}`;
 
-  const correctAnswers = questions.map((q) => q.correct || []);
+  // Instantly display answers
+  let answersContainer = document.getElementById("answers-container");
+  if (!answersContainer) {
+    answersContainer = document.createElement("div");
+    answersContainer.id = "answers-container";
+    answersContainer.style.marginTop = "25px";
+    resultSection.appendChild(answersContainer);
+  }
+  showAnswers(answersContainer);
 
-  try {
-    await fetch(scriptURL, {
+  // Send data to sheet asynchronously (non-blocking)
+  const correctAnswers = questions.map((q) => q.correct || []);
+  setTimeout(() => {
+    fetch(scriptURL, {
       method: "POST",
       body: JSON.stringify({
         action: "saveResult",
@@ -198,37 +201,8 @@ async function submitQuiz() {
         answers: userAnswers,
         correctAnswers: correctAnswers,
       }),
-    });
-  } catch (err) {
-    console.error("Error saving result:", err);
-  }
-
-  if (!resultSection.querySelector("#view-answers-btn")) {
-    const answersBtn = document.createElement("button");
-    answersBtn.id = "view-answers-btn";
-    answersBtn.innerText = "View Answers";
-    answersBtn.classList.add("btn", "primary");
-    answersBtn.style.marginTop = "12px";
-    resultSection.querySelector(".controls-row").appendChild(answersBtn);
-
-    const answersContainer = document.createElement("div");
-    answersContainer.id = "answers-container";
-    answersContainer.classList.add("hidden");
-    answersContainer.style.marginTop = "20px";
-    resultSection.appendChild(answersContainer);
-
-    answersBtn.addEventListener("click", () => {
-      if (answersContainer.classList.contains("hidden")) {
-        showAnswers(answersContainer);
-        answersContainer.classList.remove("hidden");
-        answersBtn.innerText = "Hide Answers";
-      } else {
-        answersContainer.classList.add("hidden");
-        answersContainer.innerHTML = "";
-        answersBtn.innerText = "View Answers";
-      }
-    });
-  }
+    }).catch((err) => console.error("Error saving result:", err));
+  }, 0);
 }
 
 // ----------------------
@@ -244,9 +218,9 @@ function showAnswers(container) {
     const block = document.createElement("div");
     block.style.marginBottom = "16px";
     block.style.padding = "12px";
-    block.style.border = "1px solid rgba(255,255,255,0.08)";
+    block.style.border = "1px solid rgba(255,255,255,0.1)";
     block.style.borderRadius = "8px";
-    block.style.background = "rgba(255,255,255,0.03)";
+    block.style.background = "rgba(255,255,255,0.05)";
 
     const qText = document.createElement("div");
     qText.innerHTML = `<strong>Q${index + 1}:</strong> ${q.question}`;
@@ -273,14 +247,17 @@ function showAnswers(container) {
       const pickedByUser = userAns.includes(optCode);
       const isCorrectOption = correctAns.includes(optCode);
 
+      // 🟩 Correct options (always green)
       if (isCorrectOption) {
-        line.style.color = "#00c853";
+        line.style.color = "#00ff08ff";
         if (pickedByUser) {
           line.style.fontWeight = "700";
           line.style.textDecoration = "underline";
         }
-      } else if (pickedByUser && !isCorrectOption) {
-        line.style.color = "#ff0000";
+      }
+      // 🟥 Wrong options (only if user selected them)
+      else if (pickedByUser && !isCorrectOption) {
+        line.style.color = "#ff0000ff";
         line.style.fontWeight = "600";
       } else {
         line.style.color = "#ffffff";
