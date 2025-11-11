@@ -1,6 +1,5 @@
-// script.js
 const scriptURL =
-  "https://script.google.com/macros/s/AKfycbzjHyIiKyREItsYPnel90fh3FziniTXI3NsxEMdw6FP6sX8vg77ObR7LkVp7jXWsyZr/exec";
+  "https://script.google.com/macros/s/AKfycbyr9f_YmLpXcKHfqkaTuf9n5pTeao81uznDUz9MW98-4QZr0pLSDbqXmmHkSUxK9SjX/exec";
 
 let questions = []; // array of question objects { question, options[], correct[] }
 let currentQuestion = 0;
@@ -29,6 +28,20 @@ function shuffleArray(array) {
 }
 
 // ----------------------
+// Utility: Manage attempts using localStorage
+// ----------------------
+function getAttempts(email) {
+  const data = JSON.parse(localStorage.getItem("quizAttempts") || "{}");
+  return data[email] || 0;
+}
+
+function incrementAttempts(email) {
+  const data = JSON.parse(localStorage.getItem("quizAttempts") || "{}");
+  data[email] = (data[email] || 0) + 1;
+  localStorage.setItem("quizAttempts", JSON.stringify(data));
+}
+
+// ----------------------
 // START QUIZ
 // ----------------------
 startBtn.addEventListener("click", async () => {
@@ -37,6 +50,15 @@ startBtn.addEventListener("click", async () => {
 
   if (!userName || !userEmail) {
     alert("Please enter both name and email.");
+    return;
+  }
+
+  // Check attempts (max 2 allowed)
+  const attempts = getAttempts(userEmail);
+  if (attempts >= 2) {
+    alert(
+      "You have already completed your 2 attempts. You cannot retake the quiz."
+    );
     return;
   }
 
@@ -59,6 +81,9 @@ startBtn.addEventListener("click", async () => {
     score = 0;
     userAnswers = [];
     showQuestion();
+
+    // Increment attempts only when quiz starts
+    incrementAttempts(userEmail);
   } catch (err) {
     console.error("Error starting quiz:", err);
     alert(
@@ -88,10 +113,6 @@ function showQuestion() {
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.value = String.fromCharCode(65 + i); // 'A','B','C',...
-      checkbox.setAttribute(
-        "aria-label",
-        `Option ${String.fromCharCode(65 + i)}`
-      );
 
       const span = document.createElement("span");
       span.innerText = opt;
@@ -115,17 +136,13 @@ nextBtn.addEventListener("click", async () => {
     document.querySelectorAll("input[type='checkbox']:checked")
   ).map((cb) => cb.value);
 
-  // Mandatory: must select at least one
   if (selected.length === 0) {
     alert("Please select at least one option before continuing.");
     return;
   }
 
-  // Save user's selected letters for this question
   userAnswers.push(selected);
 
-  // Multi-correct logic:
-  // If user selected any correct option AND selected no wrong options -> correct (1 mark)
   const correct = questions[currentQuestion].correct || [];
   const hasCorrect = selected.some((s) => correct.includes(s));
   const hasWrong = selected.some((s) => !correct.includes(s));
@@ -147,15 +164,12 @@ nextBtn.addEventListener("click", async () => {
 // SUBMIT QUIZ
 // ----------------------
 async function submitQuiz() {
-  // Hide quiz, show result
   quizSection.classList.add("hidden");
   resultSection.classList.remove("hidden");
   document.getElementById("score").innerText = `${score} / ${questions.length}`;
 
-  // Prepare correctAnswers array aligned with the (shuffled) questions
   const correctAnswers = questions.map((q) => q.correct || []);
 
-  // Send to server (answers and correctAnswers)
   try {
     await fetch(scriptURL, {
       method: "POST",
@@ -165,15 +179,14 @@ async function submitQuiz() {
         email: userEmail,
         score,
         total: questions.length,
-        answers: userAnswers, // array of arrays like [["A"],["B","C"],...]
-        correctAnswers: correctAnswers, // array of arrays
+        answers: userAnswers,
+        correctAnswers: correctAnswers,
       }),
     });
   } catch (err) {
     console.error("Error saving result:", err);
   }
 
-  // Add "View Answers" button (if not already present)
   if (!resultSection.querySelector("#view-answers-btn")) {
     const answersBtn = document.createElement("button");
     answersBtn.id = "view-answers-btn";
@@ -203,7 +216,7 @@ async function submitQuiz() {
 }
 
 // ----------------------
-// SHOW ANSWERS (UI) — shows user's selections and correct answers
+// SHOW ANSWERS
 // ----------------------
 function showAnswers(container) {
   container.innerHTML = "";
@@ -232,7 +245,6 @@ function showAnswers(container) {
       line.style.marginLeft = "12px";
       line.style.padding = "4px 0";
 
-      // Show label letter + option text
       const labelSpan = document.createElement("span");
       labelSpan.innerText = `${optCode}. `;
       labelSpan.style.fontWeight = "600";
@@ -242,24 +254,19 @@ function showAnswers(container) {
       textSpan.innerText = opt;
       line.appendChild(textSpan);
 
-      // Determine styling: green for correct option; underline if user picked it;
-      // blue for user-picked wrong (so user can see what they clicked)
       const pickedByUser = userAns.includes(optCode);
       const isCorrectOption = correctAns.includes(optCode);
 
       if (isCorrectOption) {
-        // correct option — green text
-        line.style.color = "#00c853"; // green
+        line.style.color = "#00c853";
         if (pickedByUser) {
           line.style.fontWeight = "700";
           line.style.textDecoration = "underline";
         }
       } else if (pickedByUser && !isCorrectOption) {
-        // wrong option that user picked — blue
         line.style.color = "#ff0000";
         line.style.fontWeight = "600";
       } else {
-        // neutral
         line.style.color = "#ffffff";
       }
 
@@ -269,7 +276,6 @@ function showAnswers(container) {
     container.appendChild(block);
   });
 
-  // Optionally add a summary header with score
   const summary = document.createElement("div");
   summary.style.margin = "8px 0 16px";
   summary.innerHTML = `<strong>Your score:</strong> ${score} / ${questions.length}`;
