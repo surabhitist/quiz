@@ -1,23 +1,26 @@
 const scriptURL =
   "https://script.google.com/macros/s/AKfycbyr9f_YmLpXcKHfqkaTuf9n5pTeao81uznDUz9MW98-4QZr0pLSDbqXmmHkSUxK9SjX/exec";
 
-let questions = []; // array of question objects { question, options[], correct[] }
+let questions = [];
 let currentQuestion = 0;
 let score = 0;
 let userName = "";
 let userEmail = "";
-let userAnswers = []; // array of arrays, each inner array contains chosen letters like ["A","C"]
+let userAnswers = [];
 
 const startBtn = document.getElementById("startBtn");
+const beginQuizBtn = document.getElementById("beginQuizBtn");
+const backBtn = document.getElementById("backBtn");
 const nextBtn = document.getElementById("nextBtn");
 const restartBtn = document.getElementById("restartBtn");
 
 const userSection = document.getElementById("user-section");
+const instructionsSection = document.getElementById("instructions-section");
 const quizSection = document.getElementById("quiz-section");
 const resultSection = document.getElementById("result-section");
 
 // ----------------------
-// Utility: Fisher-Yates shuffle
+// Utility: Shuffle
 // ----------------------
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -28,13 +31,12 @@ function shuffleArray(array) {
 }
 
 // ----------------------
-// Utility: Manage attempts using localStorage
+// Utility: Attempt management
 // ----------------------
 function getAttempts(email) {
   const data = JSON.parse(localStorage.getItem("quizAttempts") || "{}");
   return data[email] || 0;
 }
-
 function incrementAttempts(email) {
   const data = JSON.parse(localStorage.getItem("quizAttempts") || "{}");
   data[email] = (data[email] || 0) + 1;
@@ -42,7 +44,7 @@ function incrementAttempts(email) {
 }
 
 // ----------------------
-// START QUIZ
+// Start Button - Show Instructions First
 // ----------------------
 startBtn.addEventListener("click", async () => {
   userName = document.getElementById("name").value.trim();
@@ -53,7 +55,6 @@ startBtn.addEventListener("click", async () => {
     return;
   }
 
-  // Check attempts (max 2 allowed)
   const attempts = getAttempts(userEmail);
   if (attempts >= 2) {
     alert(
@@ -62,6 +63,7 @@ startBtn.addEventListener("click", async () => {
     return;
   }
 
+  // Fetch questions before showing instructions
   try {
     const res = await fetch(`${scriptURL}?action=getQuestions`);
     questions = await res.json();
@@ -71,29 +73,43 @@ startBtn.addEventListener("click", async () => {
       return;
     }
 
-    // Shuffle questions each time
+    // Shuffle questions
     questions = shuffleArray(questions);
 
+    // Show instructions section
     userSection.classList.add("hidden");
-    quizSection.classList.remove("hidden");
-
-    currentQuestion = 0;
-    score = 0;
-    userAnswers = [];
-    showQuestion();
-
-    // Increment attempts only when quiz starts
-    incrementAttempts(userEmail);
+    instructionsSection.classList.remove("hidden");
   } catch (err) {
-    console.error("Error starting quiz:", err);
-    alert(
-      "Could not connect to server. Check your Apps Script deployment URL."
-    );
+    console.error("Error loading quiz:", err);
+    alert("Could not connect to server. Please try again later.");
   }
 });
 
 // ----------------------
-// SHOW QUESTION
+// Begin Quiz from Instructions
+// ----------------------
+beginQuizBtn.addEventListener("click", () => {
+  instructionsSection.classList.add("hidden");
+  quizSection.classList.remove("hidden");
+
+  currentQuestion = 0;
+  score = 0;
+  userAnswers = [];
+
+  showQuestion();
+  incrementAttempts(userEmail);
+});
+
+// ----------------------
+// Go Back to Login
+// ----------------------
+backBtn.addEventListener("click", () => {
+  instructionsSection.classList.add("hidden");
+  userSection.classList.remove("hidden");
+});
+
+// ----------------------
+// Show Question
 // ----------------------
 function showQuestion() {
   const q = questions[currentQuestion];
@@ -112,7 +128,7 @@ function showQuestion() {
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.value = String.fromCharCode(65 + i); // 'A','B','C',...
+      checkbox.value = String.fromCharCode(65 + i);
 
       const span = document.createElement("span");
       span.innerText = opt;
@@ -129,7 +145,7 @@ function showQuestion() {
 }
 
 // ----------------------
-// NEXT / SUBMIT (multi-correct logic + mandatory)
+// Next / Submit
 // ----------------------
 nextBtn.addEventListener("click", async () => {
   const selected = Array.from(
@@ -161,7 +177,7 @@ nextBtn.addEventListener("click", async () => {
 });
 
 // ----------------------
-// SUBMIT QUIZ
+// Submit Quiz
 // ----------------------
 async function submitQuiz() {
   quizSection.classList.add("hidden");
@@ -216,7 +232,7 @@ async function submitQuiz() {
 }
 
 // ----------------------
-// SHOW ANSWERS
+// Show Answers
 // ----------------------
 function showAnswers(container) {
   container.innerHTML = "";
@@ -283,7 +299,7 @@ function showAnswers(container) {
 }
 
 // ----------------------
-// RESTART QUIZ
+// Restart Quiz
 // ----------------------
 restartBtn.addEventListener("click", () => {
   location.reload();
