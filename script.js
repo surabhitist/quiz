@@ -1,5 +1,5 @@
 const scriptURL =
-  "https://script.google.com/macros/s/AKfycbxkjtOfcniD5JOlSnfbBfR4-JumuuFZPgBmijCyJE7KOTPLPus5mkd4nch3VSQ2JA1Z/exec";
+  "https://script.google.com/macros/s/AKfycbykJV6KLkze50WSvTkEh9jA8Qzro3ZVRu61zWi6l-09cfwgNETB4EF2xClkZzT9bAgA/exec";
 
 let questions = [];
 let currentQuestion = 0;
@@ -61,7 +61,6 @@ startBtn.addEventListener("click", async () => {
       return;
     }
 
-    // ✅ Removed shuffling — questions appear in sheet order
     userSection.classList.add("hidden");
     instructionsSection.classList.remove("hidden");
   } catch (err) {
@@ -144,10 +143,11 @@ nextBtn.addEventListener("click", async () => {
 
   const correct = questions[currentQuestion].correct || [];
 
-  // ✅ Strict logic
-  const hasCorrect = selected.some((s) => correct.includes(s));
+  // ✅ Apply full-correct logic for scoring
+  const allCorrectSelected = correct.every((c) => selected.includes(c));
   const hasWrong = selected.some((s) => !correct.includes(s));
-  if (hasCorrect && !hasWrong) {
+
+  if (allCorrectSelected && !hasWrong) {
     score++;
   }
 
@@ -195,7 +195,7 @@ function submitQuiz() {
 }
 
 // ----------------------
-// Show Answers
+// ✅ Show Answers (Updated Logic Here)
 // ----------------------
 function showAnswers(container) {
   container.innerHTML = "";
@@ -203,6 +203,11 @@ function showAnswers(container) {
   questions.forEach((q, index) => {
     const userAns = userAnswers[index] || [];
     const correctAns = q.correct || [];
+
+    // ✅ Apply “all correct + no wrong” logic
+    const allCorrectSelected = correctAns.every((c) => userAns.includes(c));
+    const hasWrong = userAns.some((a) => !correctAns.includes(a));
+    const isFullyCorrect = allCorrectSelected && !hasWrong;
 
     const block = document.createElement("div");
     block.style.marginBottom = "16px";
@@ -233,18 +238,18 @@ function showAnswers(container) {
       textSpan.innerText = opt;
       line.appendChild(textSpan);
 
-      const pickedByUser = userAns.includes(optCode);
-      const hasWrong = userAns.some((a) => !correctAns.includes(a));
       const isCorrectOption = correctAns.includes(optCode);
+      const pickedByUser = userAns.includes(optCode);
 
+      // ✅ Color logic
       if (isCorrectOption) {
-        line.style.color = "#00ff08ff";
-        if (pickedByUser && !hasWrong) {
+        line.style.color = "#00ff08";
+        if (isFullyCorrect && pickedByUser) {
           line.style.fontWeight = "700";
           line.style.textDecoration = "underline";
         }
       } else if (pickedByUser) {
-        line.style.color = "#ff0000ff";
+        line.style.color = "#ff0000";
         line.style.fontWeight = "600";
       } else {
         line.style.color = "#ffffff";
@@ -252,6 +257,14 @@ function showAnswers(container) {
 
       block.appendChild(line);
     });
+
+    // Add status summary
+    const resultText = document.createElement("div");
+    resultText.style.marginTop = "6px";
+    resultText.style.fontStyle = "italic";
+    resultText.style.color = isFullyCorrect ? "#00ff08" : "#ff0000";
+    resultText.textContent = isFullyCorrect ? "✅ Correct" : "❌ Incorrect";
+    block.appendChild(resultText);
 
     container.appendChild(block);
   });
