@@ -1,5 +1,5 @@
 const scriptURL =
-  "https://script.google.com/macros/s/AKfycbyr9f_YmLpXcKHfqkaTuf9n5pTeao81uznDUz9MW98-4QZr0pLSDbqXmmHkSUxK9SjX/exec";
+  "https://script.google.com/macros/s/AKfycbxkjtOfcniD5JOlSnfbBfR4-JumuuFZPgBmijCyJE7KOTPLPus5mkd4nch3VSQ2JA1Z/exec";
 
 let questions = [];
 let currentQuestion = 0;
@@ -18,17 +18,6 @@ const userSection = document.getElementById("user-section");
 const instructionsSection = document.getElementById("instructions-section");
 const quizSection = document.getElementById("quiz-section");
 const resultSection = document.getElementById("result-section");
-
-// ----------------------
-// Utility: Shuffle
-// ----------------------
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
 
 // ----------------------
 // Utility: Attempt management
@@ -72,7 +61,7 @@ startBtn.addEventListener("click", async () => {
       return;
     }
 
-    questions = shuffleArray(questions);
+    // ✅ Removed shuffling — questions appear in sheet order
     userSection.classList.add("hidden");
     instructionsSection.classList.remove("hidden");
   } catch (err) {
@@ -154,10 +143,13 @@ nextBtn.addEventListener("click", async () => {
   userAnswers.push(selected);
 
   const correct = questions[currentQuestion].correct || [];
-  const hasCorrect = selected.some((s) => correct.includes(s));
 
-  // ✅ Consider correct if any correct option chosen
-  if (hasCorrect) score++;
+  // ✅ Strict logic
+  const hasCorrect = selected.some((s) => correct.includes(s));
+  const hasWrong = selected.some((s) => !correct.includes(s));
+  if (hasCorrect && !hasWrong) {
+    score++;
+  }
 
   currentQuestion++;
 
@@ -172,12 +164,10 @@ nextBtn.addEventListener("click", async () => {
 // Submit Quiz (No delay version)
 // ----------------------
 function submitQuiz() {
-  // Immediately switch sections and show answers
   quizSection.classList.add("hidden");
   resultSection.classList.remove("hidden");
   document.getElementById("score").innerText = `${score} / ${questions.length}`;
 
-  // Instantly display answers
   let answersContainer = document.getElementById("answers-container");
   if (!answersContainer) {
     answersContainer = document.createElement("div");
@@ -187,7 +177,6 @@ function submitQuiz() {
   }
   showAnswers(answersContainer);
 
-  // Send data to sheet asynchronously (non-blocking)
   const correctAnswers = questions.map((q) => q.correct || []);
   setTimeout(() => {
     fetch(scriptURL, {
@@ -245,18 +234,16 @@ function showAnswers(container) {
       line.appendChild(textSpan);
 
       const pickedByUser = userAns.includes(optCode);
+      const hasWrong = userAns.some((a) => !correctAns.includes(a));
       const isCorrectOption = correctAns.includes(optCode);
 
-      // 🟩 Correct options (always green)
       if (isCorrectOption) {
         line.style.color = "#00ff08ff";
-        if (pickedByUser) {
+        if (pickedByUser && !hasWrong) {
           line.style.fontWeight = "700";
           line.style.textDecoration = "underline";
         }
-      }
-      // 🟥 Wrong options (only if user selected them)
-      else if (pickedByUser && !isCorrectOption) {
+      } else if (pickedByUser) {
         line.style.color = "#ff0000ff";
         line.style.fontWeight = "600";
       } else {
